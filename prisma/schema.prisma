@@ -1,0 +1,138 @@
+// =============================================================================
+// Prisma schema — Generic Reservation / Resource Management Template
+// -----------------------------------------------------------------------------
+// Start variant: CAR RENTAL (Wypożyczalnia samochodów)
+//
+// The data model is intentionally split into three generic roles:
+//
+//   User        -> the account (USER / ADMIN / optional worker role)
+//   Car         -> the RESOURCE that gets reserved/assigned   (generic: Resource)
+//   Reservation -> the REQUEST a user makes about a resource   (generic: Request)
+//
+// To switch the project to another topic you mostly rename these models and
+// swap a few fields. The mapping is documented next to every model below and
+// in README.md -> "Jak zmienić temat projektu".
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+/// Application roles. USER + ADMIN are the generic minimum.
+/// Optional worker role for other domains: add e.g. AGENT / COURIER / CASHIER /
+/// DOCTOR / EMPLOYEE here and grant it permissions in the policy layer.
+enum Role {
+  USER
+  ADMIN
+  // AGENT      // <- example worker role, uncomment + handle in policies
+}
+
+/// Resource category. Car Rental => car class.
+/// Paczkomaty  => LockerSize (SMALL/MEDIUM/LARGE)
+/// Kino        => SeatType   (NORMAL/VIP)
+/// Sale        => RoomType   (SMALL/CONFERENCE/AUDITORIUM)
+enum CarClass {
+  ECONOMY
+  STANDARD
+  SUV
+  PREMIUM
+  LUXURY
+}
+
+/// Lifecycle of a request. Generic for every domain.
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+/// Account. Generic across every domain.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@index([role])
+  @@map("users")
+}
+
+/// RESOURCE being reserved. Start variant: a rentable car.
+///
+/// Generic mapping:
+///   Paczkomaty  -> Locker  (lockerSize, location, isActive)
+///   Kino        -> Seat / Screening (row, number, screeningId)
+///   Weterynarz  -> Doctor  (specialty, isActive)
+///   Sale        -> Room    (capacity, building, isActive)
+model Car {
+  id          String   @id @default(cuid())
+  brand       String // generic: a human label / identifier of the resource
+  model       String // generic: secondary label
+  carClass    CarClass // generic: resource category (see enum)
+  pricePerDay Decimal  @db.Decimal(10, 2) // generic: unit price used by the pricing algorithm
+  isActive    Boolean  @default(true) // generic: is the resource bookable at all
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservations Reservation[]
+
+  // Indexed because the catalogue + availability filter query by these columns.
+  @@index([carClass])
+  @@index([isActive])
+  @@map("cars")
+}
+
+/// REQUEST a user makes about a resource. Start variant: a rental reservation.
+///
+/// IMPORTANT: `totalPrice` is ALWAYS computed on the backend by the pricing
+/// algorithm (services/reservation.service.ts). It is never accepted from the
+/// client. See README.md -> "Opis security".
+///
+/// Generic mapping:
+///   Paczkomaty  -> Parcel (createdAt, pickupDeadline, size)
+///   Kino        -> TicketReservation (seatId, screeningId)
+///   Weterynarz  -> Appointment (slotStart, slotEnd, doctorId)
+///   Sale        -> RoomBooking (startDate, endDate, cost)
+model Reservation {
+  id            String            @id @default(cuid())
+  userId        String
+  carId         String
+  startDate     DateTime // generic: request window start (used by collision check)
+  endDate       DateTime // generic: request window end
+  driverAge     Int // generic: a domain input that feeds the algorithm
+  withInsurance Boolean           @default(false) // generic: an optional add-on
+  status        ReservationStatus @default(PENDING)
+  totalPrice    Decimal           @db.Decimal(10, 2) // computed by the algorithm, never from client
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  // Ownership lookups ("my reservations") + admin lists.
+  @@index([userId])
+  @@index([status])
+  // Composite index for the availability / collision query
+  // (find reservations for a car overlapping a date window).
+  @@index([carId, startDate, endDate])
+  @@map("reservations")
+}

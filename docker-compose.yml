@@ -1,0 +1,25 @@
+# Local PostgreSQL for the project.
+# Start with:  docker compose up -d
+# Stop with:   docker compose down
+# Wipe data:   docker compose down -v
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zpo_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zpo
+      POSTGRES_PASSWORD: zpo
+      POSTGRES_DB: zpo
+    ports:
+      - "5432:5432"
+    volumes:
+      - zpo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zpo -d zpo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  zpo_pgdata:

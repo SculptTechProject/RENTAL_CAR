@@ -67,7 +67,8 @@ npm test
 ```
 
 Skróty (zob. `package.json`): `npm run db:reset` (czyści bazę i seeduje od
-nowa), `npm run db:studio` (Prisma Studio), `npm run typecheck`.
+nowa), `npm run db:studio` (Prisma Studio), `npm run typecheck`,
+`npm run topic` (przełącznik tematu — patrz [`ADAPT.md`](./ADAPT.md)).
 
 > **Uwagi techniczne**
 > - npm 11 domyślnie blokuje skrypty instalacyjne pakietów — nie wpływa to na
@@ -240,10 +241,15 @@ Test Files  3 passed (3)
 
 ## 10. Jak zmienić temat projektu
 
+> **Najszybsza ścieżka i pełna recepta: [`ADAPT.md`](./ADAPT.md).**
+> Tematykę przełączysz komendą `npm run topic -- <temat>` (presety:
+> `lockers`, `cinema`, `vet`, `rooms`), która zmienia całe UI i wypisuje
+> checklistę pozostałych kroków.
+
 Architektura jest tak zaprojektowana, by zmiana tematu sprowadzała się do:
-**(a)** edycji `domain.config.ts`, **(b)** podmiany aktywnej strategii w
-`strategies/index.ts`, **(c)** dostosowania modeli Prisma. Generyczne
-endpointy/serwisy/polityki zostają.
+**(a)** edycji presetu w `config/presets/` (przełącza `npm run topic`),
+**(b)** podmiany aktywnej strategii w serwisie, **(c)** dostosowania modeli
+Prisma. Generyczne endpointy/serwisy/polityki zostają.
 
 Pliki kluczowe:
 - `src/server/domain/config/domain.config.ts` — nazwy i copy UI.

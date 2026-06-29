@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { domainConfig } from "@/server/domain/config/domain.config";
 import { formatPLN } from "@/lib/utils";
 import type { CarDTO } from "@/types";
 
@@ -26,10 +27,12 @@ export function CarCard({ car }: { car: CarDTO }) {
       <CardContent className="mt-auto flex items-center justify-between">
         <div>
           <p className="text-lg font-semibold">{formatPLN(car.pricePerDay)}</p>
-          <p className="text-xs text-muted-foreground">za dobę</p>
+          <p className="text-xs text-muted-foreground">
+            {domainConfig.ui.priceUnitLabel}
+          </p>
         </div>
         <Button asChild size="sm">
-          <Link href={`/cars/${car.id}`}>Szczegóły</Link>
+          <Link href={`/cars/${car.id}`}>{domainConfig.ui.detailsCta}</Link>
         </Button>
       </CardContent>
     </Card>

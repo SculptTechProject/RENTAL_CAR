@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ApiError, api } from "@/features/generic/api-client";
+import {
+  domainConfig,
+  resourceFieldLabel,
+} from "@/server/domain/config/domain.config";
 import { CAR_CLASSES, type CarDTO } from "@/types";
 
 // Admin-only form. The endpoint is still protected by requireRole("ADMIN") on
@@ -37,7 +41,11 @@ export function AddCarForm() {
       router.push("/admin/cars");
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Nie udało się dodać samochodu.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : `Nie udało się dodać: ${domainConfig.resource.name.toLowerCase()}.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -48,7 +56,7 @@ export function AddCarForm() {
       {error && <Alert variant="destructive">{error}</Alert>}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="brand">Marka</Label>
+          <Label htmlFor="brand">{resourceFieldLabel("brand", "Marka")}</Label>
           <Input
             id="brand"
             value={brand}
@@ -57,7 +65,7 @@ export function AddCarForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="model">Model</Label>
+          <Label htmlFor="model">{resourceFieldLabel("model", "Model")}</Label>
           <Input
             id="model"
             value={model}
@@ -68,7 +76,7 @@ export function AddCarForm() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label htmlFor="class">Klasa</Label>
+          <Label htmlFor="class">{domainConfig.resource.categoryLabel}</Label>
           <Select
             id="class"
             value={carClass}
@@ -82,7 +90,9 @@ export function AddCarForm() {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="price">Cena za dobę (PLN)</Label>
+          <Label htmlFor="price">
+            {resourceFieldLabel("pricePerDay", "Cena za dobę (PLN)")}
+          </Label>
           <Input
             id="price"
             type="number"
@@ -101,10 +111,12 @@ export function AddCarForm() {
           onChange={(e) => setIsActive(e.target.checked)}
           className="h-4 w-4"
         />
-        Aktywny (dostępny do rezerwacji)
+        {resourceFieldLabel("isActive", "Aktywny")} (dostępny do rezerwacji)
       </label>
       <Button type="submit" disabled={loading}>
-        {loading ? "Zapisywanie..." : "Dodaj samochód"}
+        {loading
+          ? "Zapisywanie..."
+          : `Dodaj: ${domainConfig.resource.name.toLowerCase()}`}
       </Button>
     </form>
   );

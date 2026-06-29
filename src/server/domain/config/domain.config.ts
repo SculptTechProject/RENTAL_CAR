@@ -1,15 +1,14 @@
-import { CAR_CLASSES, ROLES, type UserRole } from "@/types";
-
 // =============================================================================
-//  >>> THE ONE FILE YOU EDIT TO RE-THEME THE WHOLE APP <<<
+//  DOMAIN CONFIG — typy + helpery + WYBÓR AKTYWNEGO PRESETU.
 //
-//  This object centralises every domain-specific *label* and *copy* string.
-//  The generic UI/services read names from here, so renaming the topic
-//  (Car Rental -> Lockers / Cinema / Vet / Rooms ...) is mostly editing values
-//  in this file. See README.md -> "Jak zmienić temat projektu".
+//  Cała tematyka aplikacji (Wypożyczalnia / Paczkomaty / Kino / Wet / Sale) jest
+//  opisana DEKLARATYWNIE w pliku presetu w `./presets`. Tutaj zostają tylko:
+//    1. typy konfiguracji,
+//    2. helpery do czytania etykiet (UI ich używa zamiast stringów na sztywno),
+//    3. JEDNA linia wybierająca aktywny preset (przełącza ją `npm run topic`).
 //
-//  NOTE: this is intentionally a simple typed config object, NOT a fully
-//  dynamic metadata framework. It is meant to stay readable and defensible.
+//  Dzięki temu re-theme = edycja jednego presetu (lub `npm run topic`), a UI
+//  podąża automatycznie. Patrz: ADAPT.md.
 // =============================================================================
 
 export type DomainFieldType = "string" | "number" | "boolean" | "date" | "enum";
@@ -34,6 +33,7 @@ export interface DomainConfig {
   resource: {
     name: string; // "Samochód"
     namePlural: string; // "Samochody"
+    namePluralGenitive: string; // "samochodów" (dla "Znaleziono wolnych ...")
     categoryLabel: string; // "Klasa"
   };
   /** What the REQUEST is called. */
@@ -60,78 +60,54 @@ export interface DomainConfig {
     adminResourcesTitle: string;
     createRequestCta: string;
     priceLabel: string;
+    /** Jednostka ceny, np. "za dobę" / "za bilet" / "za wizytę". */
+    priceUnitLabel: string;
+    /** CTA na karcie zasobu, np. "Szczegóły". */
+    detailsCta: string;
+    /** Opcja "wszystkie kategorie" w filtrze. */
+    allCategoriesLabel: string;
   };
 }
 
-/**
- * ===== ACTIVE DOMAIN: CAR RENTAL (Wypożyczalnia samochodów) =====
- */
-export const domainConfig: DomainConfig = {
-  domainName: "Car Rental",
-  resource: {
-    name: "Samochód",
-    namePlural: "Samochody",
-    categoryLabel: "Klasa",
-  },
-  request: {
-    name: "Rezerwacja",
-    namePlural: "Rezerwacje",
-  },
-  roles: ROLES,
-  algorithmType: "pricing-and-availability",
-  resourceFields: [
-    { name: "brand", label: "Marka", type: "string" },
-    { name: "model", label: "Model", type: "string" },
-    {
-      name: "carClass",
-      label: "Klasa",
-      type: "enum",
-      options: CAR_CLASSES,
-    },
-    {
-      name: "pricePerDay",
-      label: "Cena za dzień (PLN)",
-      type: "number",
-      helpText: "Bazowa cena dobowa wykorzystywana przez algorytm wyceny.",
-    },
-    { name: "isActive", label: "Aktywny", type: "boolean" },
-  ],
-  requestFields: [
-    { name: "startDate", label: "Data od", type: "date" },
-    { name: "endDate", label: "Data do", type: "date" },
-    {
-      name: "driverAge",
-      label: "Wiek kierowcy",
-      type: "number",
-      helpText: "Kierowcy poniżej 25 lat: dopłata. Poniżej 18 lat: brak zgody.",
-    },
-    { name: "withInsurance", label: "Ubezpieczenie", type: "boolean" },
-  ],
-  ui: {
-    appName: "CarRental ZPO",
-    tagline: "Generyczny system rezerwacji zasobów",
-    catalogTitle: "Dostępne samochody",
-    catalogSubtitle: "Wybierz samochód i zarezerwuj online.",
-    availabilityTitle: "Sprawdź dostępność w terminie",
-    myRequestsTitle: "Moje rezerwacje",
-    adminRequestsTitle: "Wszystkie rezerwacje",
-    adminResourcesTitle: "Zarządzanie flotą",
-    createRequestCta: "Zarezerwuj",
-    priceLabel: "Cena całkowita",
-  },
-};
+import { ROLES, type UserRole } from "@/types";
 
-// ---------------------------------------------------------------------------
-// EXAMPLE of the SAME config re-themed for Paczkomaty (kept here as a guide).
-// To switch topic: replace `domainConfig` above with something like this and
-// swap the active strategy in src/server/domain/strategies/index.ts.
-//
-// export const domainConfig: DomainConfig = {
-//   domainName: "Parcel Lockers",
-//   resource: { name: "Paczkomat", namePlural: "Paczkomaty", categoryLabel: "Rozmiar" },
-//   request: { name: "Paczka", namePlural: "Paczki" },
-//   roles: ["USER", "ADMIN"],          // + "COURIER"
-//   algorithmType: "assignment",
-//   ...
-// };
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// >>> AKTYWNY PRESET <<<  — tę linię przełącza `npm run topic`.
+// Możesz też podmienić ją ręcznie na dowolny preset z `./presets`.
+import { carRentalConfig as activePreset } from "./presets/car-rental"; // @active-preset
+// -----------------------------------------------------------------------------
+
+export const domainConfig: DomainConfig = activePreset;
+
+// Re-export listy ról domyślnie używanej przez presety (wygoda).
+export { ROLES };
+
+// -----------------------------------------------------------------------------
+// Helpery — UI czyta etykiety stąd, więc zmiana presetu re-themuje formularze.
+// -----------------------------------------------------------------------------
+
+function findLabel(
+  fields: DomainFieldConfig[],
+  name: string,
+  fallback: string,
+): string {
+  return fields.find((f) => f.name === name)?.label ?? fallback;
+}
+
+/** Etykieta pola ZASOBU (np. "brand" -> "Marka"). */
+export function resourceFieldLabel(name: string, fallback = name): string {
+  return findLabel(domainConfig.resourceFields, name, fallback);
+}
+
+/** Etykieta pola ZGŁOSZENIA (np. "driverAge" -> "Wiek kierowcy"). */
+export function requestFieldLabel(name: string, fallback = name): string {
+  return findLabel(domainConfig.requestFields, name, fallback);
+}
+
+/** Pełna konfiguracja pojedynczego pola (label + helpText + options). */
+export function resourceField(name: string): DomainFieldConfig | undefined {
+  return domainConfig.resourceFields.find((f) => f.name === name);
+}
+export function requestField(name: string): DomainFieldConfig | undefined {
+  return domainConfig.requestFields.find((f) => f.name === name);
+}

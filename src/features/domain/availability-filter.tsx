@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ApiError, api } from "@/features/generic/api-client";
 import { CarCard } from "@/features/domain/car-card";
+import { domainConfig } from "@/server/domain/config/domain.config";
 import { CAR_CLASSES, type CarDTO } from "@/types";
 
 // Calls GET /api/cars/available. The collision logic runs on the BACKEND;
@@ -64,13 +65,15 @@ export function AvailabilityFilter() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="class">Klasa (opcjonalnie)</Label>
+          <Label htmlFor="class">
+            {domainConfig.resource.categoryLabel} (opcjonalnie)
+          </Label>
           <Select
             id="class"
             value={carClass}
             onChange={(e) => setCarClass(e.target.value)}
           >
-            <option value="">Wszystkie</option>
+            <option value="">{domainConfig.ui.allCategoriesLabel}</option>
             {CAR_CLASSES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -88,10 +91,14 @@ export function AvailabilityFilter() {
       {results !== null && (
         <div>
           <p className="mb-3 text-sm text-muted-foreground">
-            Znaleziono wolnych samochodów: {results.length}
+            Znaleziono wolnych {domainConfig.resource.namePluralGenitive}:{" "}
+            {results.length}
           </p>
           {results.length === 0 ? (
-            <Alert>Brak wolnych samochodów w wybranym terminie.</Alert>
+            <Alert>
+              Brak wolnych {domainConfig.resource.namePluralGenitive} w wybranym
+              terminie.
+            </Alert>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {results.map((car) => (
